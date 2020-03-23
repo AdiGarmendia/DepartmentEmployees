@@ -1,6 +1,7 @@
 ﻿using DepartmentsEmployees.Data;
 using DepartmentsEmployees.Models;
 using System;
+using System.Collections.Generic;
 
 namespace DepartmentsEmployees
 {
@@ -13,7 +14,7 @@ namespace DepartmentsEmployees
             Console.WriteLine("Getting All Departments:");
             Console.WriteLine();
 
-            System.Collections.Generic.List<Department> allDepartments = departmentRepo.GetAllDepartments();
+            List<Department> allDepartments = departmentRepo.GetAllDepartments();
 
             foreach (Department dept in allDepartments)
             {
@@ -26,6 +27,16 @@ namespace DepartmentsEmployees
             Department singleDepartment = departmentRepo.GetDepartmentById(1);
 
             Console.WriteLine($"{singleDepartment.Id} {singleDepartment.DeptName}");
+
+            Department legalDept = new Department
+            {
+                DeptName = "Legal"
+            };
+
+            departmentRepo.AddDepartment(legalDept);
+
+            Console.WriteLine("-------------------------------");
+            Console.WriteLine("Added the new Legal Department!");
         }
     }
 }

@@ -6,4 +6,5 @@ namespace DepartmentsEmployees.Models
         public int Id { get; set; }
         public string DeptName { get; set; }
     }
+
 }
