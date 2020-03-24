@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace DepartmentsEmployeesConsole.Data
+namespace DepartmentsEmployees.Data
 {
     // This class is for retrieving data from our database
     public class EmployeeRepository
@@ -13,7 +13,7 @@ namespace DepartmentsEmployeesConsole.Data
         {
             get
             {
-                string _connectionString = "Data Source=localhost\\SQLEXPRESS; Initial Catalog=DepartmentsEmployees37; Integrated Security=True";
+                string _connectionString = "Data Source=localhost\\SQLEXPRESS; Initial Catalog=DepartmentsEmployees; Integrated Security=True";
                 return new SqlConnection(_connectionString);
             }
         }

@@ -1,6 +1,5 @@
 ﻿using DepartmentsEmployees.Data;
 using DepartmentsEmployees.Models;
-using DepartmentsEmployeesConsole.Data;
 using System;
 using System.Collections.Generic;
 
