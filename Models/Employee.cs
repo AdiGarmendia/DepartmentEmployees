@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Text;
+
 namespace DepartmentsEmployees.Models
 {
     // C# representation of the Employee table
@@ -13,4 +17,4 @@ namespace DepartmentsEmployees.Models
         // This property is for storing the C# object representing the department
         public Department Department { get; set; }
     }
-}          
+}

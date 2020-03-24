@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Text;
 using Microsoft.Data.SqlClient;
 using DepartmentsEmployees.Models;
 
@@ -23,6 +25,7 @@ namespace DepartmentsEmployees.Data
                 return new SqlConnection(_connectionString);
             }
         }
+
         /// <summary>
         ///  Returns a list of all departments in the database
         /// </summary>
@@ -40,45 +43,47 @@ namespace DepartmentsEmployees.Data
                 conn.Open();
 
                 // We must "use" commands too.
-                using SqlCommand cmd = conn.CreateCommand();
-                // Here we setup the command with the SQL we want to execute before we execute it.
-                cmd.CommandText = "SELECT Id, DeptName FROM Department";
-
-                // Execute the SQL in the database and get a "reader" that will give us access to the data.
-                SqlDataReader reader = cmd.ExecuteReader();
-
-                // A list to hold the departments we retrieve from the database.
-                List<Department> departments = new List<Department>();
-
-                // Read() will return true if there's more data to read
-                while (reader.Read())
+                using (SqlCommand cmd = conn.CreateCommand())
                 {
-                    // The "ordinal" is the numeric position of the column in the query results.
-                    //  For our query, "Id" has an ordinal value of 0 and "DeptName" is 1.
-                    int idColumnPosition = reader.GetOrdinal("Id");
+                    // Here we setup the command with the SQL we want to execute before we execute it.
+                    cmd.CommandText = "SELECT Id, DeptName FROM Department";
 
-                    // We user the reader's GetXXX methods to get the value for a particular ordinal.
-                    int idValue = reader.GetInt32(idColumnPosition);
+                    // Execute the SQL in the database and get a "reader" that will give us access to the data.
+                    SqlDataReader reader = cmd.ExecuteReader();
 
-                    int deptNameColumnPosition = reader.GetOrdinal("DeptName");
-                    string deptNameValue = reader.GetString(deptNameColumnPosition);
+                    // A list to hold the departments we retrieve from the database.
+                    List<Department> departments = new List<Department>();
 
-                    // Now let's create a new department object using the data from the database.
-                    Department department = new Department
+                    // Read() will return true if there's more data to read
+                    while (reader.Read())
                     {
-                        Id = idValue,
-                        DeptName = deptNameValue
-                    };
+                        // The "ordinal" is the numeric position of the column in the query results.
+                        //  For our query, "Id" has an ordinal value of 0 and "DeptName" is 1.
+                        int idColumnPosition = reader.GetOrdinal("Id");
 
-                    // ...and add that department object to our list.
-                    departments.Add(department);
+                        // We user the reader's GetXXX methods to get the value for a particular ordinal.
+                        int idValue = reader.GetInt32(idColumnPosition);
+
+                        int deptNameColumnPosition = reader.GetOrdinal("DeptName");
+                        string deptNameValue = reader.GetString(deptNameColumnPosition);
+
+                        // Now let's create a new department object using the data from the database.
+                        Department department = new Department
+                        {
+                            Id = idValue,
+                            DeptName = deptNameValue
+                        };
+
+                        // ...and add that department object to our list.
+                        departments.Add(department);
+                    }
+
+                    // We should Close() the reader. Unfortunately, a "using" block won't work here.
+                    reader.Close();
+
+                    // Return the list of departments who whomever called this method.
+                    return departments;
                 }
-
-                // We should Close() the reader. Unfortunately, a "using" block won't work here.
-                reader.Close();
-
-                // Return the list of departments who whomever called this method.
-                return departments;
             }
         }
 
@@ -114,6 +119,7 @@ namespace DepartmentsEmployees.Data
                 }
             }
         }
+
         /// <summary>
         ///  Add a new department to the database
         ///   NOTE: This method sends data to the database,
@@ -138,6 +144,7 @@ namespace DepartmentsEmployees.Data
 
             // when this method is finished we can look in the database and see the new department.
         }
+
         /// <summary>
         ///  Updates the department with the given id
         /// </summary>
@@ -158,6 +165,7 @@ namespace DepartmentsEmployees.Data
                 }
             }
         }
+
         /// <summary>
         ///  Delete the department with the given id
         /// </summary>
@@ -174,6 +182,5 @@ namespace DepartmentsEmployees.Data
                 }
             }
         }
-
     }
 }

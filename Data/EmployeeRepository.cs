@@ -1,181 +1,187 @@
-using DepartmentsEmployees.Models;
-using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Microsoft.Data.SqlClient;
+using DepartmentsEmployees.Models;
 
 namespace DepartmentsEmployees.Data
 {
-    // This class is for retrieving data from our database
-    public class EmployeeRepository
+    class EmployeeRepository
     {
+        /// <summary>
+        ///  Represents a connection to the database.
+        ///   This is a "tunnel" to connect the application to the database.
+        ///   All communication between the application and database passes through this connection.
+        /// </summary>
         public SqlConnection Connection
         {
             get
             {
-                string _connectionString = "Data Source=localhost\\SQLEXPRESS; Initial Catalog=DepartmentsEmployees; Integrated Security=True";
+                // This is "address" of the database
+                string _connectionString = "Data Source=localhost\\SQLEXPRESS;Initial Catalog=DepartmentsEmployees;Integrated Security=True";
                 return new SqlConnection(_connectionString);
             }
         }
 
+        /// <summary>
+        ///  Returns a list of all departments in the database
+        /// </summary>
         public List<Employee> GetAllEmployees()
         {
-            // 1. Open a connection to the database
-            // 2. Create a SQL SELECT  statement as a C# string
-            // 3. Execute that SQL statement against the database
-            // 4. From the database, we get "raw data" back. We need to parse this as a C# object
-            // 5. Close the connection to the database
-            // 6. Return the Employee object
-
-
-            // This opens the connection. SQLConnection is the TUNNEL
+            //  We must "use" the database connection.
+            //  Because a database is a shared resource (other applications may be using it too) we must
+            //  be careful about how we interact with it. Specifically, we Open() connections when we need to
+            //  interact with the database and we Close() them when we're finished.
+            //  In C#, a "using" block ensures we correctly disconnect from a resource even if there is an error.
+            //  For database connections, this means the connection will be properly closed.
             using (SqlConnection conn = Connection)
             {
-                // This opens the GATES on either side of the TUNNEL
+                // Note, we must Open() the connection, the "using" block   doesn't do that for us.
                 conn.Open();
 
-                // SQLCommand is the list of instructions to give to a truck driver when they get to the other side of the TUNNEL
+                // We must "use" commands too.
                 using (SqlCommand cmd = conn.CreateCommand())
                 {
-                    // Here is the sql command that we want to be run when the driver gets to the database
-                    cmd.CommandText = @"
-                        SELECT e.Id, e.FirstName, e.LastName, e.DepartmentId, d.Id, d.DeptName
-                        FROM Employee e
-                        LEFT JOIN Department d
-                        ON e.DepartmentId = d.Id";
+                    // Here we setup the command with the SQL we want to execute before we execute it.
+                    cmd.CommandText = "SELECT Id, FirstName, LastName FROM Employee";
 
-                    // ExecuteReader actually has the driver go to the database and executes that command. The driver then comes back with a bunch of data from the database. This is held in the this variable called "reader"
+                    // Execute the SQL in the database and get a "reader" that will give us access to the data.
                     SqlDataReader reader = cmd.ExecuteReader();
 
-                    // This is just us initializing the list that we'll eventually return
-                    List<Employee> allEmployees = new List<Employee>();
+                    // A list to hold the departments we retrieve from the database. 
+                    List<Employee> employees = new List<Employee>();
 
-
-                    // The reader will read the returned data from the database one row at a time. This is why we put it in a while loop
+                    // Read() will return true if there's more data to read
                     while (reader.Read())
                     {
-                        // Get ordinal returns us what "position" the Id column is in
-                        int idColumn = reader.GetOrdinal("Id");
-                        int idValue = reader.GetInt32(idColumn);
+                        // The "ordinal" is the numeric position of the column in the query results.
+                        //  For our query, "Id" has an ordinal value of 0 and "FirstName" is 1.
+                        int idColumnPosition = reader.GetOrdinal("Id");
 
-                        // The reader isn't smart enough to know automatically what TYPE of data it's reading.
-                        // For that reason we have to tell it, by saying `GetInt32`, `GetString`, GetDate`, etc
-                        int firstNameColumn = reader.GetOrdinal("FirstName");
-                        string firstNameValue = reader.GetString(firstNameColumn);
+                        // We user the reader's GetXXX methods to get the value for a particular ordinal.
+                        int idValue = reader.GetInt32(idColumnPosition);
 
-                        int lastNameColumn = reader.GetOrdinal("LastName");
-                        string lastNameValue = reader.GetString(lastNameColumn);
+                        int firstNameColumnPosition = reader.GetOrdinal("FirstName");
+                        string firstNameValue = reader.GetString(firstNameColumnPosition);
 
-                        int departmentIdColumn = reader.GetOrdinal("DepartmentId");
-                        int departmentValue = reader.GetInt32(departmentIdColumn);
+                        int lastNameColumnPosition = reader.GetOrdinal("LastName");
+                        string lastNameValue = reader.GetString(lastNameColumnPosition);
 
-                        int departmentNameColumn = reader.GetOrdinal("DeptName");
-                        string departmentNameValue = reader.GetString(departmentNameColumn);
-
-                        // Now that all the data is parsed, we create a new C# object
-                        var employee = new Employee()
+                        // Now let's create a new employee object using the data from the database.
+                        Employee employee = new Employee
                         {
                             Id = idValue,
                             FirstName = firstNameValue,
-                            LastName = lastNameValue,
-                            DepartmentId = departmentValue,
-                            Department = new Department()
-                            {
-                                Id = departmentValue,
-                                DeptName = departmentNameValue
-                            }
+                            LastName = lastNameValue
                         };
 
-                        // Now that we have a parsed C# object, we can add it to the list and continue with the while loop
-                        allEmployees.Add(employee);
+                        // ...and add that employee object to our list.
+                        employees.Add(employee);
                     }
 
-                    // Now we can close the connection
+                    // We should Close() the reader. Unfortunately, a "using" block won't work here.
                     reader.Close();
 
-                    // and return all employees
-                    return allEmployees;
+                    // Return the list of employees who whomever called this method.
+                    return employees;
                 }
             }
         }
-        public Employee GetEmployeeById(int employeeId)
+
+        /// <summary>
+        ///  Returns a single employee with the given id.
+        /// </summary>
+        public Employee GetEmployeeById(int id)
         {
-            // This opens the connection. SQLConnection is the TUNNEL
             using (SqlConnection conn = Connection)
             {
-                // This opens the GATES on either side of the TUNNEL
                 conn.Open();
-
-                // SQLCommand is the list of instructions to give to a truck driver when they get to the other side of the TUNNEL
                 using (SqlCommand cmd = conn.CreateCommand())
                 {
-                    // Here is the sql command that we want to be run when the driver gets to the database
-                    cmd.CommandText = @"
-                        SELECT e.Id, e.FirstName, e.LastName, e.DepartmentId, d.Id, d.DeptName
-                        FROM Employee e
-                        LEFT JOIN Department d
-                        ON e.DepartmentId = d.Id
-                        WHERE e.Id = @id";
-
-                    // This is us telling the truck driver that there is a VARIABLE in the sql statement. When you get to the database, replace the string "@id" with employeeId
-                    cmd.Parameters.Add(new SqlParameter("@id", employeeId));
-
-                    // ExecuteReader actually has the driver go to the database and executes that command. The driver then comes back with a bunch of data from the database. This is held in the this variable called "reader"
+                    cmd.CommandText = "SELECT FirstName, Lastname FROM Employee WHERE Id = @id";
+                    cmd.Parameters.Add(new SqlParameter("@id", id));
                     SqlDataReader reader = cmd.ExecuteReader();
 
+                    Employee employee = null;
 
-                    // The reader will read the returned data from the database if it finds the single row we're looking for. If it doesn't find the employee with the given Id, reader.Read() will return false
+                    // If we only expect a single row back from the database, we don't need a while loop.
                     if (reader.Read())
                     {
-                        // Get ordinal returns us what "position" the Id column is in
-                        int idColumn = reader.GetOrdinal("Id");
-                        int idValue = reader.GetInt32(idColumn);
+                        employee = new Employee
+                        {
+                            Id = id,
+                            FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
+                            LastName = reader.GetString(reader.GetOrdinal("LastName"))
+                        };
+                    }
 
-                        // The reader isn't smart enough to know automatically what TYPE of data it's reading.
-                        // For that reason we have to tell it, by saying `GetInt32`, `GetString`, GetDate`, etc
-                        int firstNameColumn = reader.GetOrdinal("FirstName");
-                        string firstNameValue = reader.GetString(firstNameColumn);
+                    reader.Close();
 
-                        int lastNameColumn = reader.GetOrdinal("LastName");
-                        string lastNameValue = reader.GetString(lastNameColumn);
+                    return employee;
+                }
+            }
+        }
 
-                        int departmentIdColumn = reader.GetOrdinal("DepartmentId");
-                        int departmentValue = reader.GetInt32(departmentIdColumn);
+        public List<Employee> GetAllEmployeesWithDepartment()
+        {
+            using (SqlConnection conn = Connection)
+            {
+                conn.Open();
+                using (SqlCommand cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"SELECT e.Id, e.FirstName, e.Lastname, e.DepartmentId, d.Id, d.DeptName
+                                        FROM Employee e
+                                        LEFT JOIN Department d ON e.DepartmentId = d.Id";
+                    SqlDataReader reader = cmd.ExecuteReader();
 
-                        int departmentNameColumn = reader.GetOrdinal("DeptName");
-                        string departmentNameValue = reader.GetString(departmentNameColumn);
+                    List<Employee> employees = new List<Employee>();
 
-                        // Now that all the data is parsed, we create a new C# object
-                        var employee = new Employee()
+                    while (reader.Read())
+                    {
+                        int idColumnPosition = reader.GetOrdinal("Id");
+                        int idValue = reader.GetInt32(idColumnPosition);
+
+                        int firstNameColumnPosition = reader.GetOrdinal("FirstName");
+                        string firstNameValue = reader.GetString(firstNameColumnPosition);
+
+                        int lastNameColumnPosition = reader.GetOrdinal("LastName");
+                        string lastNameValue = reader.GetString(lastNameColumnPosition);
+
+                        int deptIdColumn = reader.GetOrdinal("DepartmentId");
+                        int deptValue = reader.GetInt32(deptIdColumn);
+
+                        int deptNameColumnPosition = reader.GetOrdinal("DeptName");
+                        string deptNameValue = reader.GetString(deptNameColumnPosition);
+
+                        Employee employee = new Employee
                         {
                             Id = idValue,
                             FirstName = firstNameValue,
                             LastName = lastNameValue,
-                            DepartmentId = departmentValue,
+                            DepartmentId = deptValue,
                             Department = new Department()
                             {
-                                Id = departmentValue,
-                                DeptName = departmentNameValue
+                                Id = deptValue,
+                                DeptName = deptNameValue
                             }
                         };
 
-                        // Now we can close the reader
-                        reader.Close();
+                        employees.Add(employee);
+                    }
 
-                        return employee;
-                    }
-                    else
-                    {
-                        // We didn't find the employee with that ID in the database. return null
-                        return null;
-                    }
+                    reader.Close();
+
+                    return employees;
                 }
             }
         }
 
-
-        // Create a new employee
-        public Employee CreateNewEmployee(Employee employeeToAdd)
+        /// <summary>
+        ///  Add a new department to the database
+        ///   NOTE: This method sends data to the database,
+        ///   it does not get anything from the database, so there is nothing to return.
+        /// </summary>
+        public void AddEmployee(Employee employee)
         {
             using (SqlConnection conn = Connection)
             {
@@ -183,42 +189,41 @@ namespace DepartmentsEmployees.Data
 
                 using (SqlCommand cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = @"
-                        INSERT INTO Employee (FirstName, LastName, DepartmentId)
-                        OUTPUT INSERTED.Id
-                        VALUES (@firstName, @lastName, @departmentId)";
-
-                    cmd.Parameters.Add(new SqlParameter("@firstName", employeeToAdd.FirstName));
-                    cmd.Parameters.Add(new SqlParameter("@lastName", employeeToAdd.LastName));
-                    cmd.Parameters.Add(new SqlParameter("@departmentId", employeeToAdd.DepartmentId));
-
-                    int id = (int)cmd.ExecuteScalar();
-
-                    employeeToAdd.Id = id;
-
-                    return employeeToAdd;
-                }
-            }
-        }
-
-        // Update Employee
-        public void UpdateEmployee(int employeeId, Employee employee)
-        {
-            using (SqlConnection conn = Connection)
-            {
-                conn.Open();
-
-                using (SqlCommand cmd = conn.CreateCommand())
-                {
-                    cmd.CommandText = @"
-                        UPDATE Employee
-                        SET FirstName = @firstName, LastName = @lastName, DepartmentId = @departmentId
-                        WHERE Id = @id";
-
+                    // These SQL parameters are annoying. Why can't we use string interpolation?
+                    // ... sql injection attacks!!!
+                    cmd.CommandText = @"INSERT INTO Employee (FirstName, LastName, DepartmentId)
+                                        OUTPUT INSERTED.Id
+                                        Values (@firstName, @lastName, @departmentId)";
                     cmd.Parameters.Add(new SqlParameter("@firstName", employee.FirstName));
                     cmd.Parameters.Add(new SqlParameter("@lastName", employee.LastName));
                     cmd.Parameters.Add(new SqlParameter("@departmentId", employee.DepartmentId));
-                    cmd.Parameters.Add(new SqlParameter("@id", employeeId));
+
+                    int id = (int)cmd.ExecuteScalar();
+
+                    employee.Id = id;
+                }
+            }
+
+            // when this method is finished we can look in the database and see the new department.
+        }
+
+        /// <summary>
+        ///  Updates the department with the given id
+        /// </summary>
+        public void UpdateEmployee(int id, Employee employee)
+        {
+            using (SqlConnection conn = Connection)
+            {
+                conn.Open();
+                using (SqlCommand cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"UPDATE Employee
+                                     SET FirstName = @firstName, LastName = @lastName, DepartmentId = @departmentId
+                                     WHERE Id = @id";
+                    cmd.Parameters.Add(new SqlParameter("@firstName", employee.FirstName));
+                    cmd.Parameters.Add(new SqlParameter("@lastName", employee.LastName));
+                    cmd.Parameters.Add(new SqlParameter("@departmentId", employee.DepartmentId));
+                    cmd.Parameters.Add(new SqlParameter("@id", id));
 
                     // We don't expect anything back from the database (it's not really a "query", so we can say Execute NonQuery
                     cmd.ExecuteNonQuery();
@@ -226,19 +231,18 @@ namespace DepartmentsEmployees.Data
             }
         }
 
-        // Delete an employee
-        public void DeleteEmployee(int employeeId)
+        /// <summary>
+        ///  Delete the department with the given id
+        /// </summary>
+        public void DeleteEmployee(int id)
         {
             using (SqlConnection conn = Connection)
             {
                 conn.Open();
-
                 using (SqlCommand cmd = conn.CreateCommand())
                 {
                     cmd.CommandText = "DELETE FROM Employee WHERE Id = @id";
-
-                    cmd.Parameters.Add(new SqlParameter("@id", employeeId));
-
+                    cmd.Parameters.Add(new SqlParameter("@id", id));
                     cmd.ExecuteNonQuery();
                 }
             }
